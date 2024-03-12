@@ -2,3 +2,5 @@ openai==1.2.3
 requests
 pydantic
 streamlit-pydantic
+langchain_core
+langchain_experimental
