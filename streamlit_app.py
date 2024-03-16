@@ -168,13 +168,36 @@ def run_conversation(prompt):
             },
         }
     ]
-    
+
+    assistant = client.beta.assistants.create(
+          instructions="You are an investment analyst. When asked a math question, write and run code to answer the question.",
+          model="gpt-4-turbo-preview",
+          tools=[
+              {"type": "code_interpreter"}
+              {"type": "function",
+               "function": {
+                   "name": "ncreif_api",
+                   "description": "Generates an API call for the NCREIF API",
+                   "parameters":
+                   {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL for the API call" ,
+                    },
+                },        
+            }
+               }
+                   ]
+        )
     
     response = client.chat.completions.create(model="gpt-4-1106-preview",
-    temperature = .5,
-    messages=messages,
-    functions=functions,
-    function_call="auto")
+            temperature = .5,
+            messages=messages,
+            functions=functions,
+            function_call="auto")
+    
     response_message = response.choices[0].message
 
     if response_message.function_call:
