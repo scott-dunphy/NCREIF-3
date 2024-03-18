@@ -123,26 +123,32 @@ class ThreadRunner:
 runner = ThreadRunner(client)
 
 import streamlit as st
-st.title('Query Interface')
-
-# Use a key for the text_input widget and specify the on_change callback
-query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
-
 
 def run_query_and_display_results():
     # Access the query from st.session_state
     query = st.session_state.query if 'query' in st.session_state else ''
     if query:
-        st.write(f"Processing query: {query}")
-        messages = runner.run_thread(query)  # Assuming 'runner' is already initialized
+        # Assuming 'runner' is already initialized and run_thread is properly defined
+        messages = runner.run_thread(query)  
         if messages:
             result = messages.data[0].content[0].text.value
-            #for message in messages.data:
-            #    result += message.content[0].text.value + "\n\n"
-            st.write(result)
+            # Update session state with the results
+            st.session_state['results'] = result
+        else:
+            # Clear results if there are none
+            st.session_state['results'] = "No results found."
     else:
-        st.write("Please enter a query.")
+        # Clear or set a default message when there's no query
+        st.session_state['results'] = "Please enter a query."
 
+st.title('Query Interface')
+
+# Text input for the query. The on_change function updates session state but doesn't directly display results.
+query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+
+# Display results here, after the input box
+if 'results' in st.session_state:
+    st.write(st.session_state['results'])
 
 
 
