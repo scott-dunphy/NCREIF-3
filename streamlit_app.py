@@ -123,6 +123,7 @@ class ThreadRunner:
 runner = ThreadRunner(client)
 
 def run_query_and_display_results(query):
+    query = st.session_state.input_text
     messages = runner.run_thread(query)
     if messages:
         result = ''
@@ -132,8 +133,12 @@ def run_query_and_display_results(query):
 
 st.title('Query Interface')
 
+# Initialize st.session_state.input_text if it doesn't exist
+if 'input_text' not in st.session_state:
+    st.session_state.input_text = ''
+    
 # Text input for the query with an on_change event to trigger the search without a button
-query = st.text_input("Enter your query:", on_change=run_query_and_display_results, args=(st.session_state.input_text,))
+query = st.text_input("Enter your query:", key='input_text', on_change=run_query_and_display_results)
 
 
 
