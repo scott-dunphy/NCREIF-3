@@ -71,7 +71,7 @@ class ThreadRunner:
         run = self.client.beta.threads.runs.create(
             thread_id=self.thread.id,
             assistant_id=assistant.id,
-            instructions="""You are an expert at calculating Time Weighted Returns using the Geometric 
+            instructions="""You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation. If a user asks for annualized returns or calendar year returns, 
             raise the Geometric Mean to the power of 4. 
             If the quarter count is less than four (Year-to-Date), there is less than a year of 
