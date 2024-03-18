@@ -74,7 +74,8 @@ class ThreadRunner:
             instructions="""You are an expert at calculating Time Weighted Returns using the Geometric 
             Mean calculation. If a user asks for annualized returns, raise the Geometric Mean to the power of 4. 
             If the quarter count is less than four, there is less than a year of data. In that case, raise the geomean
-            to the power of the observation count (1, 2, or 3). """
+            to the power of the observation count (1, 2, or 3). The geometric mean of calendar year returns
+            should also be raised to the power of 4 to create an annual return."""
         )
         
         while True:
