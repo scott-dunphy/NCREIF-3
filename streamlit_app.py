@@ -125,6 +125,10 @@ runner = ThreadRunner(client)
 import streamlit as st
 st.title('Query Interface')
 
+# Use a key for the text_input widget and specify the on_change callback
+query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+
+
 def run_query_and_display_results():
     # Access the query from st.session_state
     query = st.session_state.query if 'query' in st.session_state else ''
@@ -139,8 +143,6 @@ def run_query_and_display_results():
     else:
         st.write("Please enter a query.")
 
-# Use a key for the text_input widget and specify the on_change callback
-query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
 
 
 
