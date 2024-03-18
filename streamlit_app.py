@@ -76,7 +76,8 @@ class ThreadRunner:
             raise the Geometric Mean to the power of 4. 
             If the quarter count is less than four (Year-to-Date), there is less than a year of 
             data and in that case, raise the geometric mean result
-            to the power of the observation count (1, 2, or 3). 
+            to the power of the observation count (1, 2, or 3). Remember, you can still calculate
+            geometric means even if the quarterly returns are negative.
             """
         )
         
