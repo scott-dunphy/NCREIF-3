@@ -123,6 +123,7 @@ class ThreadRunner:
 runner = ThreadRunner(client)
 
 import streamlit as st
+st.title('Query Interface')
 
 def run_query_and_display_results():
     # Access the query from st.session_state
@@ -131,14 +132,12 @@ def run_query_and_display_results():
         st.write(f"Processing query: {query}")
         messages = runner.run_thread(query)  # Assuming 'runner' is already initialized
         if messages:
-            result = ''
-            for message in messages.data:
-                result += message.content[0].text.value + "\n\n"
+            result = messages.data[0].content[0].text.value
+            #for message in messages.data:
+            #    result += message.content[0].text.value + "\n\n"
             st.write(result)
     else:
         st.write("Please enter a query.")
-
-st.title('Query Interface')
 
 # Use a key for the text_input widget and specify the on_change callback
 query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
