@@ -123,7 +123,7 @@ class ThreadRunner:
 runner = ThreadRunner(client)
 
 def run_query_and_display_results(query):
-    query = st.session_state.text_input
+    query = st.session_state.query_input
     if query:
         # Replace the following line with the logic to process the query
         st.write(f"Processing query: {query}")
