@@ -133,7 +133,6 @@ def run_query_and_display_results(query):
 
 st.title('Query Interface')
 
-# Initialize st.session_state.input_text if it doesn't exist
 if 'input_text' not in st.session_state:
     st.session_state.input_text = ''
     
