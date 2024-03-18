@@ -122,23 +122,27 @@ class ThreadRunner:
 # Initialize your ThreadRunner with the client
 runner = ThreadRunner(client)
 
-def run_query_and_display_results(query):
+import streamlit as st
+
+def run_query_and_display_results():
+    # Access the query from st.session_state
+    query = st.session_state.query if 'query' in st.session_state else ''
     if query:
-        # Replace the following line with the logic to process the query
         st.write(f"Processing query: {query}")
+        messages = runner.run_thread(query)  # Assuming 'runner' is already initialized
+        if messages:
+            result = ''
+            for message in messages.data:
+                result += message.content[0].text.value + "\n\n"
+            st.write(result)
     else:
         st.write("Please enter a query.")
-    messages = runner.run_thread(query)
-    if messages:
-        result = ''
-        for message in messages.data:
-            result += message.content[0].text.value + "\n\n"
-    st.write(result)
 
 st.title('Query Interface')
-    
-# Text input for the query with an on_change event to trigger the search without a button
-query = st.text_input("Enter your query:", on_change=run_query_and_display_results)
+
+# Use a key for the text_input widget and specify the on_change callback
+query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+
 
 
 
