@@ -31,6 +31,7 @@ assistant = client.beta.assistants.create(
             This is because there are typically 4 quarters in a year, and raising the 
             Geometric Mean to the 4th power converts the quarterly returns to an annualized rate. You are not allowed to NOT
             raise the result to the power of 4.
+            Example: (1 + Geometric Mean) ^ 4 - 1
             [Negative Returns]
             Remember, you can still calculate
             geometric means even if the quarterly returns are negative. 
