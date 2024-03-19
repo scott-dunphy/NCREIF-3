@@ -145,7 +145,7 @@ def run_query_and_display_results():
         # Clear or set a default message when there's no query
         st.session_state['results'] = "Please enter a query."
 
-st.title('AI NCREIF QUERY TOOL (With Analytics)')
+st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
 # Text input for the query. The on_change function updates session state but doesn't directly display results.
 query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
