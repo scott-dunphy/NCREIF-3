@@ -13,7 +13,7 @@ client = OpenAI()
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 
-def ncreif_api:
+def ncreif_api():
     #url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[PropertyType]=%27{ptype}%27 and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
     url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
     r = requests.get(url)
