@@ -25,6 +25,11 @@ assistant = client.beta.assistants.create(
             [Background]
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
+            [STEPS]
+            1. FIlter the dataset for the dates specified in the prompt.
+            2. If applicable, group by property type.
+            3. Calculate the geometric mean of returns (e.g. geometric_mean = np.prod(1 + return) ** (1 / len(data))) 
+            4. Annualize returns (e.g. geometric_mean ^ 4 -1)
            [Annualizing Returns]
            ALWAYS 
             raise the Geometric Mean result to the power of 4 to annualize the returns. 
