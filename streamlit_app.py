@@ -77,7 +77,9 @@ class ThreadRunner:
             If the quarter count is less than four (Year-to-Date), there is less than a year of 
             data and in that case, raise the geometric mean result
             to the power of the observation count (1, 2, or 3). Remember, you can still calculate
-            geometric means even if the quarterly returns are negative.
+            geometric means even if the quarterly returns are negative. If the user asks trailing 1-year returns,
+            they want the four quarters ending as of the date/quarter provided. For example, the 1-year return as of 2023 3Q
+            would include 3Q 2023, 2Q 2023, 1Q 2023, and 4Q 2022.
             """
         )
         
