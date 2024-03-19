@@ -30,6 +30,8 @@ assistant = client.beta.assistants.create(
             2. If applicable, group by property type.
             3. Calculate the geometric mean of returns (e.g. geometric_mean = np.prod(1 + return) ** (1 / len(data))) 
             4. Annualize returns (e.g. geometric_mean ^ 4 -1)
+            Note: O = Office, R = Retail, I = Industrial, A = Apartments
+            
            [Annualizing Returns]
            ALWAYS 
             raise the Geometric Mean result to the power of 4 to annualize the returns. 
