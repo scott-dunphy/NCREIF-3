@@ -68,8 +68,8 @@ assistant = client.beta.assistants.create(
                      },
                  },        
              }
-         }
-        }
+         #}
+        #}
     ]
 )
 
