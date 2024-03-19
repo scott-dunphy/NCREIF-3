@@ -26,10 +26,11 @@ assistant = client.beta.assistants.create(
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
            [Annualizing Returns]
-            If the number of observations in the calculation is 4 or greater, ALWAYS 
+           ALWAYS 
             raise the Geometric Mean result to the power of 4 to annualize the returns. 
             This is because there are typically 4 quarters in a year, and raising the 
-            Geometric Mean to the 4th power converts the quarterly returns to an annualized rate.
+            Geometric Mean to the 4th power converts the quarterly returns to an annualized rate. You are not allowed to NOT
+            raise the result to the power of 4.
             [Negative Returns]
             Remember, you can still calculate
             geometric means even if the quarterly returns are negative. 
