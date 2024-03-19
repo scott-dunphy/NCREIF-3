@@ -71,15 +71,26 @@ class ThreadRunner:
         run = self.client.beta.threads.runs.create(
             thread_id=self.thread.id,
             assistant_id=assistant.id,
-            instructions="""You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
-            Mean calculation. If a user asks for annualized returns, trailing returns, or calendar year returns, 
-            raise the Geometric Mean to the power of 4. 
+            instructions="""
+            [Background]
+            You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
+            Mean calculation. If a user asks for 1) annualized returns, 2) trailing returns, or 3) calendar year returns, 
+            ALWAYS raise the Geometric Mean to the power of 4. 
+            [YTD / Year-to-Date Returns]
             If the quarter count is less than four (Year-to-Date), there is less than a year of 
             data and in that case, raise the geometric mean result
-            to the power of the observation count (1, 2, or 3). Remember, you can still calculate
-            geometric means even if the quarterly returns are negative. If the user asks trailing 1-year returns,
-            they want the four quarters ending as of the date/quarter provided. For example, the 1-year return as of 2023 3Q
-            would include 3Q 2023, 2Q 2023, 1Q 2023, and 4Q 2022.
+            to the power of the observation count (1, 2, or 3). 
+            [Negative Returns]
+            Remember, you can still calculate
+            geometric means even if the quarterly returns are negative. 
+            [Trailing Returns (e.g. 1-Year, 3-Year, 5-Year]
+            Users will often ask for trailing returns as of a specific quarter
+            or for the quarter ending in the format of 1-Year or '1 Year'.
+            Example Prompt: Calculate trailing 1-year returns as of 3Q 2023. 
+            Quarters to Use: 4Q 2022, 1Q 2023, 2Q 2023, 3Q 2023.
+
+            Example Prompt: Calculate trailing 3-year returns as of 2Q 2023. 
+            Quarters to Use: 3Q 2020, 4Q 2020, 1Q 2021, 2Q 2021, 3Q 2021, 4Q 2021, 1Q 2022, 2Q 2022, 3Q 2022, 4Q 2022, 1Q 2023, 2Q 2023.
             """
         )
         
