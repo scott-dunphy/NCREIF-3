@@ -88,6 +88,7 @@ class ThreadRunner:
             Remember, you can still calculate
             geometric means even if the quarterly returns are negative. 
             [Trailing Returns (e.g. 1-Year, 3-Year, 5-Year]
+            Be sure to filter the data by quarter appropriately.
             Users will often ask for trailing returns as of a specific quarter
             or for the quarter ending in the format of 1-Year or '1 Year'.
             Example Prompt: Calculate trailing 1-year returns as of 3Q 2023. 
