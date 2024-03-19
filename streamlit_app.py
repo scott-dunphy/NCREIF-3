@@ -74,8 +74,12 @@ class ThreadRunner:
             instructions="""
             [Background]
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
-            Mean calculation. If a user asks for 1) annualized returns, 2) trailing returns, or 3) calendar year returns, 
-            ALWAYS raise the Geometric Mean to the power of 4. 
+            Mean calculation.
+            [Annualizing Returns]
+            If the number of observations in the calculation is 4 or greater, 
+            ALWAYS raise the Geometric Mean result to the power of 4. 
+            If the number of observations in the calculation is 4 or greater, 
+            ALWAYS raise the Geometric Mean result to the power of 4. 
             [YTD / Year-to-Date Returns]
             If the quarter count is less than four (Year-to-Date), there is less than a year of 
             data and in that case, raise the geometric mean result
