@@ -72,6 +72,7 @@ class ThreadRunner:
             thread_id=self.thread.id,
             assistant_id=assistant.id,
             instructions="""
+            TAKE A DEEP BREATH AND GO STEP-BY-STEP!
             [Background]
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
