@@ -13,11 +13,23 @@ client = OpenAI()
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 
-def ncreif_api(ptype):
-    url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[PropertyType]=%27{ptype}%27 and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
-    #url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
-    r = requests.get(url)
-    return r.json()['NewDataSet']['Result1']
+#def ncreif_api(ptype):
+#    url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[PropertyType]=%27{ptype}%27 and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
+#    #url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1%20and%20[YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
+##    r = requests.get(url)
+#   return r.json()['NewDataSet']['Result1']
+
+def ncreif_api(ptypes):
+    aggregated_data = []
+    for ptype in ptypes.split(","):  # Assuming ptypes is a string of comma-separated values
+        url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName=sdunphy@metlife.com&password=password"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json().get('NewDataSet', {}).get('Result1', [])
+            aggregated_data.extend(data)
+        else:
+            print(f"Failed to fetch data for property type {ptype}")
+    return aggregated_data
 
 assistant = client.beta.assistants.create(
     instructions="""
@@ -25,6 +37,10 @@ assistant = client.beta.assistants.create(
             [Background]
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
+
+            Given data for multiple property types, calculate and compare the Time Weighted Returns 
+            for each property type. 
+    """,
             
             """,
     model="gpt-4-turbo-preview",
@@ -39,7 +55,6 @@ assistant = client.beta.assistants.create(
                  "properties": {
                      "ptype": {
                          "type": "string",
-                         "enum": ["O", "R", "I", "A"],
                          "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
                      },
                  },        
