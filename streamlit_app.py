@@ -40,7 +40,7 @@ assistant = client.beta.assistants.create(
                      "ptype": {
                          "type": "string",
                          "enum": ["O", "R", "I", "A"],
-                         "description": "The property type selected. O = Office, R = Retail, I = Industrial, A = Apartments",
+                         "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
                      },
                  },        
              }
