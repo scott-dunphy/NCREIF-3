@@ -108,8 +108,24 @@ class ThreadRunner:
             thread_id=self.thread.id,
             assistant_id=assistant.id,
             instructions="""
+            TAKE A DEEP BREATH AND GO STEP-BY-STEP!
+            [Background]
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
+            [STEPS]
+            1. FIlter the dataset for the dates specified in the prompt.
+            2. If applicable, group by property type.
+            3. Calculate the geometric mean of returns (e.g. geometric_mean = np.prod(1 + return) ** (1 / len(data))) 
+            4. Annualize returns (e.g. geometric_mean ^ 4 -1)
+            Note: In the dataset, 'O' = Office, 'R' = Retail, 'I' = Industrial, 'A' = Apartments
+            
+           [Annualizing Returns]
+           ALWAYS 
+            raise the Geometric Mean result to the power of 4 to annualize the returns. 
+            This is because there are typically 4 quarters in a year, and raising the 
+            Geometric Mean to the 4th power converts the quarterly returns to an annualized rate. You are not allowed to NOT
+            raise the result to the power of 4.
+            Example: (1 + Geometric Mean) ^ 4 - 1
             """
         )
         
