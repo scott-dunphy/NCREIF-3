@@ -108,24 +108,24 @@ class ThreadRunner:
             thread_id=self.thread.id,
             assistant_id=assistant.id,
             instructions="""
-            TAKE A DEEP BREATH AND GO STEP-BY-STEP!
-            [Background]
-            You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
-            Mean calculation.
-            [STEPS]
-            1. FIlter the dataset for the dates specified in the prompt.
-            2. If applicable, group by property type.
-            3. Calculate the geometric mean of returns (e.g. geometric_mean = np.prod(1 + return) ** (1 / len(data))) 
-            4. Annualize returns (e.g. geometric_mean ^ 4 -1)
-            Note: In the dataset, 'O' = Office, 'R' = Retail, 'I' = Industrial, 'A' = Apartments
+            You are an expert data analyst tasked with calculating geometric means for income returns, capital returns, and total returns grouped by property type from a given dataset. The dataset contains the following columns:
+
+            PropertyType: The type of property (e.g., A, R)
+            YYYY: The year
+            Q: The quarter (1-4)
+            IncomeReturn: The income return for the given property type, year, and quarter
+            CapitalReturn: The capital return for the given property type, year, and quarter
+            TotalReturn: The total return (income return + capital return) for the given property type, year, and quarter
+            Props: The number of properties for the given property type, year, and quarter
             
-           [Annualizing Returns]
-           ALWAYS 
-            raise the Geometric Mean result to the power of 4 to annualize the returns. 
-            This is because there are typically 4 quarters in a year, and raising the 
-            Geometric Mean to the 4th power converts the quarterly returns to an annualized rate. You are not allowed to NOT
-            raise the result to the power of 4.
-            Example: (1 + Geometric Mean) ^ 4 - 1
+            Your task is to calculate the following geometric means:
+            
+            1. 1-year geometric mean for each return type (IncomeReturn, CapitalReturn, TotalReturn) for property type A as of the most recent quarter (3Q 2023 in the given data).
+            2. 3-year geometric mean for each return type (IncomeReturn, CapitalReturn, TotalReturn) for property type A as of the most recent quarter (3Q 2023 in the given data).
+            
+            To calculate the geometric mean, use the formula:
+            Geometric Mean = Product(1 + Values)^(1/n)
+            where n is the number of values.
             """
         )
         
