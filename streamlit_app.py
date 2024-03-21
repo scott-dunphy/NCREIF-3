@@ -42,7 +42,7 @@ assistant = client.beta.assistants.create(
             for each property type. 
     """,
             
-            """,
+    
     model="gpt-4-turbo-preview",
     tools=[
         {"type": "code_interpreter"},
