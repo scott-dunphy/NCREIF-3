@@ -53,7 +53,7 @@ assistant = client.beta.assistants.create(
              "parameters": {
                  "type": "object",
                  "properties": {
-                     "ptype": {
+                     "ptypes": {
                          "type": "string",
                          "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
                      },
