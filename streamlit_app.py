@@ -26,6 +26,11 @@ def ncreif_api(ptypes):
             print(f"Failed to fetch data for property type {ptype}")
     return aggregated_data
 
+def census_pop(cbsa, year):
+    url = f"https://api.census.gov/data/{year}/acs/acs5?get=B01003_001E,NAME&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:{cbsa}"
+    r = requests.get(url)
+    return int(r.json()[1][0])
+
 assistant = client.beta.assistants.create(
     instructions="""
             TAKE A DEEP BREATH AND GO STEP-BY-STEP!
@@ -51,6 +56,25 @@ assistant = client.beta.assistants.create(
                      "ptypes": {
                          "type": "string",
                          "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
+                     },
+                 },        
+             }
+         }
+        },
+        {"type": "function",
+         "function": {
+             "name": "census_pop",
+             "description": "Generates an API call for the Census ACS Population. ",
+             "parameters": {
+                 "type": "object",
+                 "properties": {
+                     "cbsa": {
+                         "type": "string",
+                         "description": "Census CBSA code",
+                     },
+                     "year": {
+                         "type": "string",
+                         "description": "The year of the Census ACS survey.",
                      },
                  },        
              }
