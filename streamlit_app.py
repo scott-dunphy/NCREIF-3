@@ -14,16 +14,49 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 NCREIF_USER = st.secrets["NCREIF_USER"]
 NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
 
-def ncreif_api(ptypes):
+#def ncreif_api(ptypes):
+#    aggregated_data = []
+#    for ptype in ptypes.split(","):  # Assuming ptypes is a string of comma-separated values
+#        url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
+#        response = requests.get(url)
+#        if response.status_code == 200:
+#            data = response.json().get('NewDataSet', {}).get('Result1', [])
+#            aggregated_data.extend(data)
+#        else:
+#            print(f"Failed to fetch data for property type {ptype}")
+#    return aggregated_data
+
+def ncreif_api(ptypes, cbsas=None):
     aggregated_data = []
-    for ptype in ptypes.split(","):  # Assuming ptypes is a string of comma-separated values
-        url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json().get('NewDataSet', {}).get('Result1', [])
-            aggregated_data.extend(data)
-        else:
-            print(f"Failed to fetch data for property type {ptype}")
+
+    ptypes_list = ptypes.split(",")  # Assuming ptypes is a string of comma-separated values
+
+    if cbsas is not None:
+        cbsas_list = cbsas.split(",")  # Assuming cbsas is a string of comma-separated values
+    else:
+        cbsas_list = [None]  # Create a single-element list with None
+
+    for ptype in ptypes_list:
+        for cbsa in cbsas_list:
+            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154"
+
+            if cbsa is not None:
+                url += f" and [CBSA]='{cbsa}'"
+                group_by = "[PropertyType],[CBSA],[CBSAName],[YYYYQ]"
+            else:
+                group_by = "[PropertyType],[YYYYQ]"
+
+            url += f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
+            
+
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                data = response.json()['NewDataSet']['Result1']
+                aggregated_data.extend(data)
+            else:
+                print(f"Failed to fetch data for property type {ptype} and CBSA {cbsa}")
+
     return aggregated_data
 
 def census_pop(cbsa, year):
@@ -58,6 +91,10 @@ assistant = client.beta.assistants.create(
                      "ptypes": {
                          "type": "string",
                          "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
+                     },
+                     "cbsas": {
+                         "type": "string",
+                         "description": "Comma-separated list of Census CBSA codes (e.g. '19100, 12060').",
                      },
                  },        
              }
