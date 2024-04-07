@@ -94,7 +94,7 @@ import time
 class ThreadRunner:
     def __init__(self, client, available_functions=None):
         self.client = client
-        self.available_functions = available_functions or {'ncreif_api': ncreif_api, 'census_pop', census_pop}
+        self.available_functions = available_functions or {'ncreif_api': ncreif_api, 'census_pop':census_pop}
         self.thread = None
         self.messages = []
 
