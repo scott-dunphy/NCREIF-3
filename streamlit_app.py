@@ -84,7 +84,7 @@ assistant = client.beta.assistants.create(
         {"type": "function",
          "function": {
              "name": "ncreif_api",
-             "description": "Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments ",
+             "description": "Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ ",
              "parameters": {
                  "type": "object",
                  "properties": {
