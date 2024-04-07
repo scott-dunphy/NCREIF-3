@@ -40,6 +40,8 @@ assistant = client.beta.assistants.create(
 
             Given data for multiple property types, calculate and compare the Time Weighted Returns 
             for each property type. 
+
+            YOu also have access to Census population data for CBSAs.
     """,
             
     
@@ -64,7 +66,7 @@ assistant = client.beta.assistants.create(
         {"type": "function",
          "function": {
              "name": "census_pop",
-             "description": "Generates an API call for the Census ACS Population. ",
+             "description": "Generates an API call for the Census ACS Population using CBSA codes. ",
              "parameters": {
                  "type": "object",
                  "properties": {
@@ -92,7 +94,7 @@ import time
 class ThreadRunner:
     def __init__(self, client, available_functions=None):
         self.client = client
-        self.available_functions = available_functions or {'ncreif_api': ncreif_api}
+        self.available_functions = available_functions or {'ncreif_api': ncreif_api, 'census_pop', census_pop}
         self.thread = None
         self.messages = []
 
