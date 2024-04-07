@@ -94,7 +94,7 @@ assistant = client.beta.assistants.create(
                      },
                      "cbsas": {
                          "type": "string",
-                         "description": "Comma-separated list of Census CBSA codes (e.g. '19100, 12060').",
+                         "description": "Comma-separated list of Census CBSA codes for NCREIF returns or property type (e.g. '19100, 12060').",
                      },
                  },        
              }
