@@ -42,7 +42,7 @@ def ncreif_api(ptypes, cbsas=None):
 
             if cbsa is not None:
                 url += f" and [CBSA]='{cbsa}'"
-                group_by = "[PropertyType],[CBSA],[CBSAName],[YYYYQ]"
+                group_by = "[PropertyType],[CBSA],[YYYYQ]"
             else:
                 group_by = "[PropertyType],[YYYYQ]"
 
