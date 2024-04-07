@@ -71,8 +71,9 @@ assistant = client.beta.assistants.create(
             You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
             Mean calculation.
 
-            Given data for multiple property types, calculate and compare the Time Weighted Returns 
-            for each property type. 
+            Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns 
+            for each property type. You calculate Time Weighted Returns by taking the geometric mean of (1 + quarterly return).
+            If the number of quarters being calculated is >= one year, annualize the geometric mean result by exponentiating by 4.
 
             YOu also have access to Census population data for CBSAs.
     """,
