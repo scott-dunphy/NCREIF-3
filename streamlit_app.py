@@ -73,8 +73,7 @@ assistant = client.beta.assistants.create(
             Mean calculation.
 
             Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns 
-            for each property type. You calculate Time Weighted Returns by taking the geometric mean of (1 + quarterly return).
-            If the number of quarters being calculated is >= one year, annualize the geometric mean result by exponentiating by 4.
+            for each property type and CBSA. 
 
             YOu also have access to Census population data for CBSAs.
     """,
@@ -89,7 +88,7 @@ assistant = client.beta.assistants.create(
              "description": """Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ.
                              When asked for 1-year returns as of a certain date, you will use the trailing four quarters from the as of date. For example, the
                              quarters used in the calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. Same logic applies
-                             for the 3-year and 5-year returns.""",
+                             for the 3-year and 5-year returns or [YYYYQ] >= 20224 and [YYYYQ] <= 20233.""",
              "parameters": {
                  "type": "object",
                  "properties": {
