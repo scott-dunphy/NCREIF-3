@@ -47,6 +47,7 @@ def ncreif_api(ptypes, cbsas=None, begq='20231', endq='20234'):
                 group_by = "[PropertyType],[YYYYQ]"
 
             url += f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
+            st.write(url)
 
 
             response = requests.get(url)
