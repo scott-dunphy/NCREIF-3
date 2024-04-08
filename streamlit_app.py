@@ -170,18 +170,15 @@ class ThreadRunner:
             YYYY: The year
             Q: The quarter (1-4)
             IncomeReturn: The income return for the given property type, year, and quarter
-            CapitalReturn: The capital return for the given property type, year, and quarter
+            CapitalReturn: The capital or appreciation return for the given property type, year, and quarter
             TotalReturn: The total return (income return + capital return) for the given property type, year, and quarter
             Props: The number of properties for the given property type, year, and quarter
             
-            Your task is to calculate the following geometric means:
-            
-            1. 1-year geometric mean for each return type (IncomeReturn, CapitalReturn, TotalReturn) for property type A as of the most recent quarter (3Q 2023 in the given data).
-            2. 3-year geometric mean for each return type (IncomeReturn, CapitalReturn, TotalReturn) for property type A as of the most recent quarter (3Q 2023 in the given data).
+            Your task is to calculate the following geometric means.
             
             To calculate the geometric mean, use the formula:
-            Geometric Mean = Product(1 + Values)^(1/n)
-            where n is the number of values.
+            Geometric Mean = [Product(1 + Values)^(1/n)]**4-1
+            where n is the number of observations.
             """
         )
         
