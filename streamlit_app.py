@@ -38,7 +38,7 @@ def ncreif_api(ptypes, cbsas=None, begq='20231', endq='20234'):
 
     for ptype in ptypes_list:
         for cbsa in cbsas_list:
-            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>={begq} and [YYYYQ] <= {endq}"
+            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>{begq} and [YYYYQ] <= {endq}"
 
             if cbsa is not None:
                 url += f" and [CBSA]='{cbsa}'"
