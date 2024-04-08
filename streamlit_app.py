@@ -85,7 +85,10 @@ assistant = client.beta.assistants.create(
         {"type": "function",
          "function": {
              "name": "ncreif_api",
-             "description": "Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ ",
+             "description": "Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ.
+                             When asked for 1-year returns as of a certain date, you will use the trailing four quarters from the as of date. For example, the
+                             quarters used in the calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. Same logic applies
+                             for the 3-year and 5-year returns.",
              "parameters": {
                  "type": "object",
                  "properties": {
