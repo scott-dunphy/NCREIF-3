@@ -103,11 +103,11 @@ assistant = client.beta.assistants.create(
                      },
                      "begq": {
                          "type": "string",
-                         "description": "Beginning quarter for the data requested in the format YYYYQ.",
+                         "description": "Beginning quarter for the data requested in the format YYYYQ. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
                      },
                      "endq": {
                          "type": "string",
-                         "description": "Ending quarter for the data requested in the format YYYYQ. This would also be the 'as of' quarter.",
+                         "description": "Ending quarter for the data requested in the format YYYYQ. This would also be the 'as of' quarter. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
                      },
                  },        
              }
