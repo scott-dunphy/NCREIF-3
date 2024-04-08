@@ -26,7 +26,7 @@ NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
 #            print(f"Failed to fetch data for property type {ptype}")
 #    return aggregated_data
 
-def ncreif_api(ptypes, cbsas=None):
+def ncreif_api(ptypes, cbsas=None, begq='20231', endq='20234'):
     aggregated_data = []
 
     ptypes_list = ptypes.split(",")  # Assuming ptypes is a string of comma-separated values
@@ -38,7 +38,7 @@ def ncreif_api(ptypes, cbsas=None):
 
     for ptype in ptypes_list:
         for cbsa in cbsas_list:
-            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154"
+            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>={begq} and [YYYYQ] <= {endq}"
 
             if cbsa is not None:
                 url += f" and [CBSA]='{cbsa}'"
@@ -47,7 +47,7 @@ def ncreif_api(ptypes, cbsas=None):
                 group_by = "[PropertyType],[YYYYQ]"
 
             url += f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
-            
+
 
             response = requests.get(url)
 
@@ -96,6 +96,14 @@ assistant = client.beta.assistants.create(
                      "cbsas": {
                          "type": "string",
                          "description": "Comma-separated list of Census CBSA codes for NCREIF returns or property type (e.g. '19100, 12060').",
+                     },
+                     "begq": {
+                         "type": "string",
+                         "description": "Beginning quarter for the data requested in the format YYYYQ.",
+                     },
+                     "endq": {
+                         "type": "string",
+                         "description": "Ending quarter for the data requested in the format YYYYQ. This would also be the 'as of' quarter.",
                      },
                  },        
              }
