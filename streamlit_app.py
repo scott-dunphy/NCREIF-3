@@ -89,6 +89,7 @@ assistant = client.beta.assistants.create(
                              When asked for 1-year returns as of a certain date, you will use the trailing four quarters from the as of date. For example, the
                              quarters used in the calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. The begq would be
                              20224 and the endq would be 20233. 1-year return as of 2Q 2023 would have begq = 20223 and endq = 20232.
+                             1-year return as of 1Q 2023 would have begq = 20222 and endq = 20231.
                              The same logic applies for the 3-year and 5-year returns, etc.""",
              "parameters": {
                  "type": "object",
