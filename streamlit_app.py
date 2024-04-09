@@ -253,7 +253,10 @@ def run_query_and_display_results():
 st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
 # Text input for the query. The on_change function updates session state but doesn't directly display results.
-query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+try:
+    query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+except:
+    st.write("Error: try again.")
 
 # Display results here, after the input box
 if 'results' in st.session_state:
