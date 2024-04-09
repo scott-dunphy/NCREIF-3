@@ -251,7 +251,7 @@ def run_query_and_display_results():
             # Clear or set a default message when there's no query
             st.session_state['results'] = "Please enter a query."
     except:
-        st.session_state['results'] = "No results found."
+        st.session_state['results'] = "Error: Try again."
 
 st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
