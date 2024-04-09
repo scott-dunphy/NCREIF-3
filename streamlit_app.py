@@ -236,19 +236,22 @@ import streamlit as st
 def run_query_and_display_results():
     # Access the query from st.session_state
     query = st.session_state.query if 'query' in st.session_state else ''
-    if query:
-        # Assuming 'runner' is already initialized and run_thread is properly defined
-        messages = runner.run_thread(query)  
-        if messages:
-            result = messages.data[0].content[0].text.value
-            # Update session state with the results
-            st.session_state['results'] = result
+    try:
+        if query:
+            # Assuming 'runner' is already initialized and run_thread is properly defined
+            messages = runner.run_thread(query)  
+            if messages:
+                result = messages.data[0].content[0].text.value
+                # Update session state with the results
+                st.session_state['results'] = result
+            else:
+                # Clear results if there are none
+                st.session_state['results'] = "No results found."
         else:
-            # Clear results if there are none
-            st.session_state['results'] = "No results found."
-    else:
-        # Clear or set a default message when there's no query
-        st.session_state['results'] = "Please enter a query."
+            # Clear or set a default message when there's no query
+            st.session_state['results'] = "Please enter a query."
+    except:
+        st.write("Error: Try again.")
 
 st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
