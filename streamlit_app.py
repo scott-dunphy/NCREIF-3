@@ -251,22 +251,17 @@ def run_query_and_display_results():
             # Clear or set a default message when there's no query
             st.session_state['results'] = "Please enter a query."
     except:
-        st.write("Error: Try again.")
+        st.session_state['results'] = "No results found."
 
 st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
 # Text input for the query. The on_change function updates session state but doesn't directly display results.
-try:
-    query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
-except:
-    st.write("Error: try again.")
+query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+
 
 # Display results here, after the input box
-try:
-    if 'results' in st.session_state:
-        st.write(st.session_state['results'])
-except:
-    st.write("Error: try again.")
+if 'results' in st.session_state:
+    st.write(st.session_state['results'])
 
 
 
