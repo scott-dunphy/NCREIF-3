@@ -259,8 +259,11 @@ except:
     st.write("Error: try again.")
 
 # Display results here, after the input box
-if 'results' in st.session_state:
-    st.write(st.session_state['results'])
+try:
+    if 'results' in st.session_state:
+        st.write(st.session_state['results'])
+except:
+    st.write("Error: try again.")
 
 
 
