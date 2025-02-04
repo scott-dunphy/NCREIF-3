@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import streamlit as st
 import openai
+from openai import ChatCompletion
 
 # --- API & Credentials Setup ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -84,7 +85,6 @@ def census_pop(cbsa: str, year: str):
         return None
 
 # --- OpenAI ChatCompletion Setup ---
-# Define our system prompt. (Feel free to spice it up as needed.)
 system_message = {
     "role": "system",
     "content": (
@@ -97,7 +97,7 @@ system_message = {
     )
 }
 
-# Define the functions (with metadata) so the assistant knows what spells it can cast.
+# Define our function call specifications so the assistant knows what spells it can cast.
 functions = [
     {
         "name": "ncreif_api",
@@ -152,10 +152,6 @@ functions = [
     },
 ]
 
-# IMPORTANT: Instead of accessing openai.ChatCompletion from the top-level openai module,
-# we import it directly from openai. This works with openai>=1.0.0.
-from openai import ChatCompletion
-
 # --- Chat Runner Class ---
 class ChatRunner:
     """
@@ -165,9 +161,7 @@ class ChatRunner:
         self.conversation_history = [system_message]
 
     def run(self, query: str):
-        # Append the user's query to the conversation history.
         self.conversation_history.append({"role": "user", "content": query})
-        # Use the new ChatCompletion interface.
         response = ChatCompletion.create(
             model="gpt-4-0613",
             messages=self.conversation_history,
@@ -175,7 +169,6 @@ class ChatRunner:
             function_call="auto",
             temperature=0.7,
         )
-        # Append the assistant's response to the history.
         self.conversation_history.append(response["choices"][0]["message"])
         return response
 
@@ -187,30 +180,25 @@ def main():
         "Simply type your query below and let the magic unfold!"
     )
 
-    # Initialize ChatRunner in session state
     if "chat_runner" not in st.session_state:
         st.session_state.chat_runner = ChatRunner()
 
-    # Create a text input for user queries
-    query = st.text_input("Enter your query here", value="", key="query_input")
-    
-    # When the user clicks 'Send Query'
-    if st.button("Send Query"):
-        if query.strip():
-            with st.spinner("Thinking..."):
-                st.session_state.chat_runner.run(query)
-            # Clear the input field after sending
-            st.session_state.query_input = ""
-        else:
-            st.warning("Please enter a query!")
+    # Use a form with clear_on_submit=True to automatically clear the text input after submission.
+    with st.form(key="query_form", clear_on_submit=True):
+        query = st.text_input("Enter your query here", key="query_input", value="")
+        submit_button = st.form_submit_button("Send Query")
+        if submit_button:
+            if query.strip():
+                with st.spinner("Thinking..."):
+                    st.session_state.chat_runner.run(query)
+            else:
+                st.warning("Please enter a query!")
 
-    # Option to reset the conversation
     if st.button("Reset Conversation"):
         st.session_state.chat_runner = ChatRunner()
         st.experimental_rerun()
 
     st.write("### Conversation History")
-    # Display the conversation history
     for message in st.session_state.chat_runner.conversation_history:
         role = message.get("role", "unknown")
         content = message.get("content", "")
