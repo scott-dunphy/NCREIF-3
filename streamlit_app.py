@@ -30,7 +30,7 @@ def chat_completion_request(messages, functions=None, function_call="auto", mode
 # ------------------------------------------------------------
 def get_geographic_code(state: str) -> str:
     """
-    Use the LLM to get the two-digit FIPS code for the given U.S. state.
+    Use the LLM to get the FIPS code for the given geography.
     The assistant is prompted to return only the code.
     """
     prompt = f"Please provide only the two-digit FIPS code for the U.S. state '{state}'."
@@ -38,8 +38,8 @@ def get_geographic_code(state: str) -> str:
         {
             "role": "system",
             "content": (
-                "You are a helpful assistant that returns only the two-digit FIPS code "
-                "for a given U.S. state. Do not include any extra text."
+                "You are a helpful assistant that returns  the FIPS code "
+                "for a given U.S. geography. Do not include any extra text."
             )
         },
         {"role": "user", "content": prompt}
