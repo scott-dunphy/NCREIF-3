@@ -157,5 +157,22 @@ class ThreadRunner:
         run = self.client.beta.threads.runs.create(
             thread_id=self.thread.id,
             assistant_id=assistant.id,
-            instructions="""
-            You are an expert data analyst tasked with calculating geometric means for income returns, capital returns, and total returns grouped by property type from a given dataset. The
+            instructions=
+            """
+            You are an expert data analyst tasked with calculating geometric means for income returns, capital returns, and total returns grouped by property type from a given dataset. The dataset contains the following columns:
+
+            PropertyType: The type of property (e.g., A, R)
+            YYYY: The year
+            Q: The quarter (1-4)
+            IncomeReturn: The income return for the given property type, year, and quarter
+            CapitalReturn: The capital or appreciation return for the given property type, year, and quarter
+            TotalReturn: The total return (income return + capital return) for the given property type, year, and quarter
+            Props: The number of properties for the given property type, year, and quarter
+            
+            Your task is to calculate the following geometric means.
+            
+            To calculate the geometric mean, use the formula:
+            Geometric Mean = [Product(1 + Values)^(1/n)]**4-1
+            where n is the number of observations.
+            """
+        )
