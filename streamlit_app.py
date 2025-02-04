@@ -6,7 +6,7 @@ from urllib.parse import urlparse, parse_qs
 import pandas as pd
 import requests
 import streamlit as st
-import openai  # The shiny new OpenAI library
+import openai
 
 # --- API & Credentials Setup ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -84,6 +84,7 @@ def census_pop(cbsa: str, year: str):
         return None
 
 # --- OpenAI ChatCompletion Setup ---
+# Define our system prompt. (Feel free to spice it up as needed.)
 system_message = {
     "role": "system",
     "content": (
@@ -96,7 +97,7 @@ system_message = {
     )
 }
 
-# Define our function call specifications
+# Define the functions (with metadata) so the assistant knows what spells it can cast.
 functions = [
     {
         "name": "ncreif_api",
@@ -151,6 +152,10 @@ functions = [
     },
 ]
 
+# IMPORTANT: Instead of accessing openai.ChatCompletion from the top-level openai module,
+# we import it directly from openai. This works with openai>=1.0.0.
+from openai import ChatCompletion
+
 # --- Chat Runner Class ---
 class ChatRunner:
     """
@@ -160,16 +165,17 @@ class ChatRunner:
         self.conversation_history = [system_message]
 
     def run(self, query: str):
-        # Append the user's query to the conversation
+        # Append the user's query to the conversation history.
         self.conversation_history.append({"role": "user", "content": query})
-        response = openai.ChatCompletion.create(
+        # Use the new ChatCompletion interface.
+        response = ChatCompletion.create(
             model="gpt-4-0613",
             messages=self.conversation_history,
             functions=functions,
             function_call="auto",
             temperature=0.7,
         )
-        # Append the assistant's response to the conversation
+        # Append the assistant's response to the history.
         self.conversation_history.append(response["choices"][0]["message"])
         return response
 
