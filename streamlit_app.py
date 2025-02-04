@@ -52,7 +52,7 @@ def get_geographic_code(state: str) -> str:
         )
         code = response.choices[0].message.content.strip()
         # Extract two-digit code using regex (in case extra text is included)
-        match = re.search(r"\b(\d{2})\b", code)
+        match = re.search(r"\b(\d+)\b", code)
         if match:
             return match.group(1)
         else:
