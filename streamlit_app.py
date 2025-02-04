@@ -1,268 +1,113 @@
-from openai import OpenAI
+import os
 import json
-import pandas as pd
+import time
 import requests
 import streamlit as st
-import os
-import base64
 from urllib.parse import urlparse, parse_qs
-import time
-import streamlit as st
 
-client = OpenAI()
+# Set credentials from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 NCREIF_USER = st.secrets["NCREIF_USER"]
 NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
 
-#def ncreif_api(ptypes):
-#    aggregated_data = []
-#    for ptype in ptypes.split(","):  # Assuming ptypes is a string of comma-separated values
-#        url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>20154&GroupBy=[PropertyType],[YYYYQ]&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
-#        response = requests.get(url)
-#        if response.status_code == 200:
-#            data = response.json().get('NewDataSet', {}).get('Result1', [])
-#            aggregated_data.extend(data)
-#        else:
-#            print(f"Failed to fetch data for property type {ptype}")
-#    return aggregated_data
-
 def ncreif_api(ptypes, cbsas=None, begq='20231', endq='20234'):
+    """
+    Generate an API call for the NCREIF API.
+    ptypes: Comma-separated property types (e.g., "O,R,I,A").
+    cbsas: Optional comma-separated CBSA codes.
+    begq: Beginning quarter (formatted as YYYYQ).
+    endq: Ending quarter (formatted as YYYYQ; also the 'as of' quarter).
+    """
     aggregated_data = []
-
-    ptypes_list = ptypes.split(",")  # Assuming ptypes is a string of comma-separated values
-
+    ptypes_list = ptypes.split(",")
     if cbsas is not None:
-        cbsas_list = cbsas.split(",")  # Assuming cbsas is a string of comma-separated values
+        cbsas_list = cbsas.split(",")
     else:
-        cbsas_list = [None]  # Create a single-element list with None
-
+        cbsas_list = [None]
     for ptype in ptypes_list:
         for cbsa in cbsas_list:
-            url = f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and [PropertyType]='{ptype}' and [YYYYQ]>{begq} and [YYYYQ] <= {endq}"
-
+            url = (
+                f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 "
+                f"and [PropertyType]='{ptype}' and [YYYYQ]>{begq} and [YYYYQ] <= {endq}"
+            )
             if cbsa is not None:
                 url += f" and [CBSA]='{cbsa}'"
                 group_by = "[PropertyType],[CBSA],[YYYYQ]"
             else:
                 group_by = "[PropertyType],[YYYYQ]"
-
             url += f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
             st.write(url)
-
-
             response = requests.get(url)
-
             if response.status_code == 200:
                 data = response.json()['NewDataSet']['Result1']
                 aggregated_data.extend(data)
             else:
-                print(f"Failed to fetch data for property type {ptype} and CBSA {cbsa}")
-
+                st.error(f"Failed to fetch data for property type {ptype} and CBSA {cbsa}")
     return aggregated_data
 
 def census_pop(cbsa, year):
-    url = f"https://api.census.gov/data/{year}/acs/acs5?get=B01003_001E,NAME&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:{cbsa}"
+    """
+    Fetch Census ACS Population data using a CBSA code and a survey year.
+    """
+    url = (
+        f"https://api.census.gov/data/{year}/acs/acs5?"
+        f"get=B01003_001E,NAME&for=metropolitan%20statistical%20area/"
+        f"micropolitan%20statistical%20area:{cbsa}"
+    )
     r = requests.get(url)
     return int(r.json()[1][0])
 
-assistant = client.beta.assistants.create(
-    instructions="""
-            TAKE A DEEP BREATH AND GO STEP-BY-STEP!
-            [Background]
-            You are an expert at Statistics and calculating Time Weighted Returns using the Geometric 
-            Mean calculation.
+# --- Updated LangChain Integration ---
+# We now use LangChain’s agent framework with tools.
+from langchain.chat_models import ChatOpenAI
+from langchain.agents import Tool, initialize_agent, AgentType
 
-            Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns 
-            for each property type and CBSA. 
+# Initialize the chat model (using GPT-4, for example)
+llm = ChatOpenAI(model_name="gpt-4")
 
-            YOu also have access to Census population data for CBSAs.
-    """,
-            
-    
-    model="gpt-4-turbo-preview",
-    tools=[
-        {"type": "code_interpreter"},
-        {"type": "function",
-         "function": {
-             "name": "ncreif_api",
-             "description": """Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ.
-                             When asked for 1-year returns as of a certain date, you will use the trailing four quarters from the as of date. For example, the
-                             quarters used in the calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. The begq would be
-                             20223 and the endq would be 20233. 1-year return as of 2Q 2023 would have begq = 20222 and endq = 20232.
-                             For the 1-year return as of 4Q 2023, the begq would be 20224 and the endq would be 20234.
-                             1-year return as of 1Q 2023 would have begq = 20221 and endq = 20231. Be sure to always include the correct number of quarters.
-                             2.5-years = 10 quarters.
-                             The same logic applies for the 3-year and 5-year returns, etc.""",
-             "parameters": {
-                 "type": "object",
-                 "properties": {
-                     "ptypes": {
-                         "type": "string",
-                         "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
-                     },
-                     "cbsas": {
-                         "type": "string",
-                         "description": "Comma-separated list of Census CBSA codes for NCREIF returns or property type (e.g. '19100, 12060').",
-                     },
-                     "begq": {
-                         "type": "string",
-                         "description": "Beginning quarter for the data requested in the format YYYYQ. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
-                     },
-                     "endq": {
-                         "type": "string",
-                         "description": "Ending quarter for the data requested in the format YYYYQ. This would also be the 'as of' quarter. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
-                     },
-                 },        
-             }
-         }
-        },
-        {"type": "function",
-         "function": {
-             "name": "census_pop",
-             "description": "Generates an API call for the Census ACS Population using CBSA codes. ",
-             "parameters": {
-                 "type": "object",
-                 "properties": {
-                     "cbsa": {
-                         "type": "string",
-                         "description": "Census CBSA code",
-                     },
-                     "year": {
-                         "type": "string",
-                         "description": "The year of the Census ACS survey.",
-                     },
-                 },        
-             }
-         }
-        }
-    ]
+# Define tools for the agent
+tool_ncreif = Tool(
+    name="ncreif_api",
+    func=ncreif_api,
+    description=(
+        "Generates an API call for the NCREIF API. Accepts comma-separated property types "
+        "and optional comma-separated CBSA codes along with begq and endq parameters. "
+        "For example, for a 1-year return as of 3Q 2023, use begq='20223' and endq='20233'."
+    )
 )
 
+tool_census = Tool(
+    name="census_pop",
+    func=census_pop,
+    description="Fetches Census ACS Population data using a CBSA code and a survey year."
+)
 
+# Create an agent that supports function calling using the latest OpenAI integration.
+agent_executor = initialize_agent(
+    tools=[tool_ncreif, tool_census],
+    llm=llm,
+    agent=AgentType.OPENAI_FUNCTIONS,
+    verbose=True
+)
 
-
-import json
-import time
-
-class ThreadRunner:
-    def __init__(self, client, available_functions=None):
-        self.client = client
-        self.available_functions = available_functions or {'ncreif_api': ncreif_api, 'census_pop':census_pop}
-        self.thread = None
-        self.messages = []
-
-    def create_thread(self):
-        self.thread = self.client.beta.threads.create()
-
-    def run_thread(self, query):
-        if not self.thread:
-            self.create_thread()
-        
-        self.client.beta.threads.messages.create(
-            thread_id=self.thread.id,
-            role="user",
-            content=query
-        )
-
-        run = self.client.beta.threads.runs.create(
-            thread_id=self.thread.id,
-            assistant_id=assistant.id,
-            instructions="""
-            You are an expert data analyst tasked with calculating geometric means for income returns, capital returns, and total returns grouped by property type from a given dataset. The dataset contains the following columns:
-
-            PropertyType: The type of property (e.g., A, R)
-            YYYY: The year
-            Q: The quarter (1-4)
-            IncomeReturn: The income return for the given property type, year, and quarter
-            CapitalReturn: The capital or appreciation return for the given property type, year, and quarter
-            TotalReturn: The total return (income return + capital return) for the given property type, year, and quarter
-            Props: The number of properties for the given property type, year, and quarter
-            
-            Your task is to calculate the following geometric means.
-            
-            To calculate the geometric mean, use the formula:
-            Geometric Mean = [Product(1 + Values)^(1/n)]**4-1
-            where n is the number of observations.
-            """
-        )
-        
-        while True:
-            time.sleep(1)
-            run = self.client.beta.threads.runs.retrieve(thread_id=self.thread.id, run_id=run.id)
-            
-            if run.status == 'requires_action':
-                tool_outputs = []
-                
-                for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-                    call_id = tool_call.id
-                    function_name = tool_call.function.name
-                    function_args = json.loads(tool_call.function.arguments)
-                    
-                    # Use a custom function or return raw data
-                    if function_name in self.available_functions:
-                        function_response = self.available_functions[function_name](**function_args)
-                        output = json.dumps(function_response) if not isinstance(function_response, str) else function_response
-                    else:
-                        output = "Raw data placeholder or fetch logic here"
-                    
-                    tool_outputs.append({
-                        "tool_call_id": call_id,
-                        "output": output
-                    })
-                
-                self.client.beta.threads.runs.submit_tool_outputs(
-                    thread_id=self.thread.id,
-                    run_id=run.id,
-                    tool_outputs=tool_outputs
-                )
-                
-            elif run.status == 'completed':
-                self.messages = self.client.beta.threads.messages.list(thread_id=self.thread.id)
-                return self.messages
-            
-            elif run.status in ['queued', 'in_progress', 'cancelling']:
-                continue
-            
-            else:
-                print(f"Unhandled Run Status: {run.status}")
-                break
-
-
-# Initialize your ThreadRunner with the client
-runner = ThreadRunner(client)
-
-import streamlit as st
-
-def run_query_and_display_results():
-    # Access the query from st.session_state
-    query = st.session_state.query if 'query' in st.session_state else ''
-    try:
-        if query:
-            # Assuming 'runner' is already initialized and run_thread is properly defined
-            messages = runner.run_thread(query)  
-            if messages:
-                result = messages.data[0].content[0].text.value
-                # Update session state with the results
-                st.session_state['results'] = result
-            else:
-                # Clear results if there are none
-                st.session_state['results'] = "No results found."
-        else:
-            # Clear or set a default message when there's no query
-            st.session_state['results'] = "Please enter a query."
-    except:
-        st.session_state['results'] = "Error: Try again."
-
+# --- Streamlit UI ---
 st.title('AI NCREIF QUERY TOOL w/ Analytics')
 
-# Text input for the query. The on_change function updates session state but doesn't directly display results.
-query = st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
+def run_query_and_display_results():
+    query = st.session_state.get("query", "")
+    if query:
+        try:
+            # Run the agent executor; it will call the appropriate tools as needed.
+            result = agent_executor.run(query)
+            st.session_state['results'] = result
+        except Exception as e:
+            st.session_state['results'] = f"Error: {e}"
+    else:
+        st.session_state['results'] = "Please enter a query."
 
+# Text input for the query; on_change updates session state and runs the query.
+st.text_input("Enter your query:", key="query", on_change=run_query_and_display_results)
 
-# Display results here, after the input box
+# Display results if available.
 if 'results' in st.session_state:
     st.write(st.session_state['results'])
-
-
-
-
