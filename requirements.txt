@@ -1,7 +1,8 @@
-streamlit==1.22.0
-markdown-it-py==3.0.0
-mdurl==0.1.2
-pygments==2.19.1
-rich==13.9.4
-typing-extensions==4.12.2
-langchain-openai
+# For making HTTP requests
+requests>=2.28.0
+
+# Core LangChain library for LLM integration
+langchain>=0.0.100
+
+# In case you need direct usage of OpenAI's LLM (through the 'ChatOpenAI' class)
+openai>=0.27.0
