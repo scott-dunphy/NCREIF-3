@@ -2,10 +2,15 @@ import os
 import json
 import time
 import requests
-import streamlit as st
+from io import BytesIO
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-# Set credentials from Streamlit secrets
+import streamlit as st
+import base64
+import glob
+
+# Set your API keys and credentials from Streamlit secrets
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 NCREIF_USER = st.secrets["NCREIF_USER"]
 NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
@@ -47,7 +52,7 @@ def ncreif_api(ptypes, cbsas=None, begq='20231', endq='20234'):
 
 def census_pop(cbsa, year):
     """
-    Fetch Census ACS Population data using a CBSA code and a survey year.
+    Fetch Census ACS Population data using a CBSA code and survey year.
     """
     url = (
         f"https://api.census.gov/data/{year}/acs/acs5?"
@@ -57,22 +62,20 @@ def census_pop(cbsa, year):
     r = requests.get(url)
     return int(r.json()[1][0])
 
-# --- Updated LangChain Integration ---
-# We now use LangChain’s agent framework with tools.
+# Import the latest LangChain agent components for function-calling
 from langchain.chat_models import ChatOpenAI
 from langchain.agents import Tool, initialize_agent, AgentType
 
-# Initialize the chat model (using GPT-4, for example)
-llm = ChatOpenAI(model_name="gpt-4")
-
-# Define tools for the agent
+# Update the chat model to use a supported model name.
+llm = ChatOpenAI(model_name="gpt-4-turbo")
+ 
+# Define your functions as tools.
 tool_ncreif = Tool(
     name="ncreif_api",
     func=ncreif_api,
     description=(
         "Generates an API call for the NCREIF API. Accepts comma-separated property types "
-        "and optional comma-separated CBSA codes along with begq and endq parameters. "
-        "For example, for a 1-year return as of 3Q 2023, use begq='20223' and endq='20233'."
+        "and optional comma-separated CBSA codes along with begq and endq parameters."
     )
 )
 
@@ -82,7 +85,7 @@ tool_census = Tool(
     description="Fetches Census ACS Population data using a CBSA code and a survey year."
 )
 
-# Create an agent that supports function calling using the latest OpenAI integration.
+# Initialize an agent that supports function calling using the latest LangChain integration.
 agent_executor = initialize_agent(
     tools=[tool_ncreif, tool_census],
     llm=llm,
@@ -97,7 +100,7 @@ def run_query_and_display_results():
     query = st.session_state.get("query", "")
     if query:
         try:
-            # Run the agent executor; it will call the appropriate tools as needed.
+            # Run the agent executor; it will decide which tool(s) to invoke.
             result = agent_executor.run(query)
             st.session_state['results'] = result
         except Exception as e:
