@@ -1,5 +1,7 @@
-openai==1.2.3
-requests
-pydantic
-streamlit-pydantic
+streamlit==1.22.0
+markdown-it-py==3.0.0
+mdurl==0.1.2
+pygments==2.19.1
+rich==13.9.4
+typing-extensions==4.12.2
 langchain-openai
