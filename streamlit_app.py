@@ -26,20 +26,27 @@ def chat_completion_request(messages, functions=None, function_call="auto", mode
     return response
 
 # ------------------------------------------------------------
-# Helper: Get FIPS Code via LLM (geographic code lookup)
+# Helper: Get FIPS Code and Geography Type via LLM (generic geographic code lookup)
 # ------------------------------------------------------------
-def get_geographic_code(state: str) -> str:
+def get_geographic_code(geography: str) -> dict:
     """
-    Use the LLM to get the FIPS code for the given geography.
-    The assistant is prompted to return only the code.
+    Use the LLM to get the FIPS code for the given U.S. geography.
+    The assistant is prompted to return a JSON object with keys "code" and "geography".
+    For example, if the input is "California", a valid output might be:
+      {"code": "06", "geography": "state"}
     """
-    prompt = f"Please provide only the two-digit FIPS code for the U.S. state '{state}'."
+    prompt = (
+        f"Please provide the FIPS code for the U.S. geography '{geography}'. "
+        "Return your answer as a JSON object with keys 'code' and 'geography'. "
+        "For example: {\"code\": \"06\", \"geography\": \"state\"}. "
+        "Do not include any extra text."
+    )
     messages = [
         {
             "role": "system",
             "content": (
-                "You are a helpful assistant that returns  the FIPS code "
-                "for a given U.S. geography. Do not include any extra text."
+                "You are a helpful assistant that returns the FIPS code and geographic type "
+                "for a given U.S. geography in JSON format. Do not include any extra text."
             )
         },
         {"role": "user", "content": prompt}
@@ -50,12 +57,16 @@ def get_geographic_code(state: str) -> str:
             messages=messages,
             temperature=0  # Keep responses deterministic.
         )
-        code = response.choices[0].message.content.strip()
-        # Extract two-digit code using regex (in case extra text is included)
-        match = re.search(r"\b(\d+)\b", code)
-        if match:
-            return match.group(1)
-        else:
+        content = response.choices[0].message.content.strip()
+        try:
+            data = json.loads(content)
+            if "code" in data and "geography" in data:
+                return data
+            else:
+                st.error("JSON does not contain expected keys 'code' and 'geography'.")
+                return None
+        except json.JSONDecodeError:
+            st.error("Failed to parse JSON output for FIPS code.")
             return None
     except Exception as e:
         st.error(f"Error obtaining geographic code: {e}")
@@ -75,16 +86,18 @@ variable_mapping = {
 # ------------------------------------------------------------
 # Main function: Fetch Census data
 # ------------------------------------------------------------
-def get_census_data(data_point: str, year: str, state: str):
+def get_census_data(data_point: str, year: str, geography: str):
     """
-    Fetches Census data by first obtaining the state's FIPS code via LLM,
-    mapping the plain language data point to a Census variable, and then
-    calling the Census API.
+    Fetches Census data by first obtaining the FIPS code (and its geographic type) via LLM,
+    mapping the plain language data point to a Census variable, and then calling the Census API.
     """
-    # Use the LLM to translate state name to FIPS code.
-    fips = get_geographic_code(state)
-    if not fips:
-        return {"error": f"Could not obtain FIPS code for state: {state}"}
+    # Use the LLM to get the FIPS code and geographic type.
+    geo_data = get_geographic_code(geography)
+    if not geo_data:
+        return {"error": f"Could not obtain FIPS code for geography: {geography}"}
+    
+    fips = geo_data.get("code")
+    geo_type = geo_data.get("geography")  # e.g., "state", "county", etc.
     
     # Map the data point to a Census variable.
     variable = None
@@ -97,15 +110,19 @@ def get_census_data(data_point: str, year: str, state: str):
     
     # Build the Census API URL (no API key required).
     url = f"https://api.census.gov/data/{year}/acs/acs1"
+    
+    # Construct the query parameters.
+    # NOTE: The Census API expects different parameters depending on the geography.
+    # Here we assume that the geography type can be used directly.
     params = {
         "get": variable,
-        "for": f"state:{fips}"
+        "for": f"{geo_type}:{fips}"
     }
     
     # Witty aside: Our Census API is as chill as a Sunday morning—no key needed!
     response = requests.get(url, params=params)
     if response.status_code == 200:
-        return {"data": response.json()}
+        return {"geography": geo_data, "data": response.json()}
     else:
         return {"error": "Failed to fetch data", "status_code": response.status_code}
 
@@ -115,7 +132,7 @@ def get_census_data(data_point: str, year: str, state: str):
 functions = [
     {
         "name": "get_census_data",
-        "description": "Fetch census data based on a data point, year, and state.",
+        "description": "Fetch census data based on a data point, year, and geography.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -127,12 +144,12 @@ functions = [
                     "type": "string",
                     "description": "The year of the census data, e.g., '2019'."
                 },
-                "state": {
+                "geography": {
                     "type": "string",
-                    "description": "The U.S. state (e.g., 'California')."
+                    "description": "The U.S. geography (e.g., 'California' for state-level or 'Los Angeles County' for county-level data)."
                 },
             },
-            "required": ["data_point", "year", "state"],
+            "required": ["data_point", "year", "geography"],
         }
     }
 ]
@@ -175,7 +192,7 @@ if st.button("Submit Query"):
                 result = get_census_data(
                     data_point=arguments.get("data_point"),
                     year=arguments.get("year"),
-                    state=arguments.get("state")
+                    geography=arguments.get("geography")
                 )
                 st.write("### Census Data Result:")
                 st.json(result)
