@@ -46,7 +46,7 @@ def get_geographic_code(state: str) -> str:
     ]
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             messages=messages,
             temperature=0  # Keep responses deterministic.
         )
