@@ -1,215 +1,158 @@
-import os
-import json
-import time
-from urllib.parse import urlparse, parse_qs
-
-import pandas as pd
-import requests
 import streamlit as st
 import openai
-from openai import ChatCompletion
+import requests
+import json
+import re
 
-# --- API & Credentials Setup ---
+# Set your OpenAI API key from the Streamlit secrets.
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-NCREIF_USER = st.secrets["NCREIF_USER"]
-NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
-
-# --- NCREIF API Function ---
-def ncreif_api(ptypes: str, cbsas: str = None, begq: str = '20231', endq: str = '20234'):
-    """
-    Fetch and aggregate data from the NCREIF API.
-    
-    Quarters must be formatted as YYYYQ.
-    """
-    aggregated_data = []
-    ptypes_list = ptypes.split(",")
-    cbsas_list = cbsas.split(",") if cbsas else [None]
-
-    for ptype in ptypes_list:
-        for cbsa in cbsas_list:
-            url = (
-                f"http://www.ncreif-api.com/API.aspx?KPI=Returns&Where=[NPI]=1 and "
-                f"[PropertyType]='{ptype}' and [YYYYQ]>{begq} and [YYYYQ]<={endq}"
-            )
-            if cbsa:
-                url += f" and [CBSA]='{cbsa}'"
-                group_by = "[PropertyType],[CBSA],[YYYYQ]"
-            else:
-                group_by = "[PropertyType],[YYYYQ]"
-            url += (
-                f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
-            )
-
-            st.write(f"Fetching data from: {url}")  # Because transparency is magical.
-            try:
-                response = requests.get(url, timeout=10)
-                response.raise_for_status()
-                data = response.json()['NewDataSet']['Result1']
-                aggregated_data.extend(data)
-            except requests.exceptions.RequestException as e:
-                st.error(f"Error fetching data for {ptype} and CBSA {cbsa}: {e}")
-                return None
-            except (KeyError, TypeError) as e:
-                st.error(
-                    f"Error parsing JSON response for {ptype} and CBSA {cbsa}: {e}. "
-                    f"Raw Response: {response.text if 'response' in locals() else 'N/A'}"
-                )
-                return None
-
-    return aggregated_data
-
-# --- Census API Function ---
-def census_pop(cbsa: str, year: str):
-    """
-    Fetch Census ACS Population data for a given CBSA and year.
-    """
-    url = (
-        f"https://api.census.gov/data/{year}/acs/acs5?"
-        f"get=B01003_001E,NAME&for=metropolitan%20statistical%20area/"
-        f"micropolitan%20statistical%20area:{cbsa}"
-    )
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-        return int(data[1][0]) if data and len(data) > 1 else None
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching census data for CBSA {cbsa} in {year}: {e}")
-        return None
-    except (IndexError, TypeError) as e:
-        st.error(
-            f"Error parsing census data for CBSA {cbsa} in {year}: {e}. "
-            f"Raw Response: {r.text if 'r' in locals() else 'N/A'}"
-        )
-        return None
-
-# --- OpenAI ChatCompletion Setup ---
-system_message = {
-    "role": "system",
-    "content": (
-        "TAKE A DEEP BREATH AND GO STEP-BY-STEP!\n"
-        "[Background]\n"
-        "You are an expert at Statistics and calculating Time Weighted Returns using the Geometric Mean calculation.\n\n"
-        "Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns "
-        "for each property type and CBSA.\n\n"
-        "You also have access to Census population data for CBSAs."
-    )
+# A simple mapping from plain language data points to Census API variables.
+variable_mapping = {
+    "median household income": "B19013_001E",
+    "population": "B01003_001E",
+    "total population": "B01003_001E",
+    "poverty count": "B17001_002E",
+    # ... add more mappings as needed
 }
 
-# Define our function call specifications so the assistant knows what spells it can cast.
+def get_geographic_code(state: str) -> str:
+    """
+    Uses the LLM to convert a U.S. state name into its two-digit FIPS code.
+    We prompt the LLM for a concise answer. If the answer isn’t exactly two digits,
+    we try to extract it using regex.
+    """
+    prompt = f"Please provide only the two-digit FIPS code for the U.S. state '{state}'."
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant that returns only the two-digit FIPS code "
+                "for a given U.S. state. Do not include any extra text."
+            )
+        },
+        {"role": "user", "content": prompt}
+    ]
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0  # Keep it deterministic!
+        )
+        code = response.choices[0].message.content.strip()
+        # Validate the code: It should be exactly two digits.
+        if len(code) == 2 and code.isdigit():
+            return code
+        else:
+            # Attempt to extract two-digit code using regex.
+            match = re.search(r"\b(\d{2})\b", code)
+            if match:
+                return match.group(1)
+            else:
+                return None
+    except Exception as e:
+        st.error(f"Error obtaining geographic code: {e}")
+        return None
+
+def get_census_data(data_point: str, year: str, state: str):
+    """
+    Fetch census data for a given data point, year, and state.
+    This function relies on the LLM to obtain the FIPS code for the state.
+    """
+    # Get the FIPS code using the LLM.
+    fips = get_geographic_code(state)
+    if not fips:
+        return {"error": f"Could not obtain FIPS code for state: {state}"}
+    
+    # Determine the corresponding Census variable using our mapping.
+    variable = None
+    for key, value in variable_mapping.items():
+        if key in data_point.lower():
+            variable = value
+            break
+    if not variable:
+        return {"error": f"Data point '{data_point}' not recognized. Consider updating the mapping."}
+    
+    # Build the Census API URL. We omit the API key since it's not required.
+    url = f"https://api.census.gov/data/{year}/acs/acs5"
+    params = {
+        "get": variable,
+        "for": f"state:{fips}"
+    }
+    
+    # Witty aside: Our Census API is as chill as a cucumber—no key required!
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        return {"data": data}
+    else:
+        return {"error": "Failed to fetch data", "status_code": response.status_code}
+
+# Define the function schema for OpenAI to use with function calling.
 functions = [
     {
-        "name": "ncreif_api",
-        "description": (
-            "Generates an API call for the NCREIF API. "
-            "O = Office, R = Retail, I = Industrial, A = Apartments. "
-            "Quarters are formatted as YYYYQ. When asked for 1-year returns as of a certain date, "
-            "use the trailing four quarters from the as of date. For example, the quarters used in the "
-            "calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. "
-            "The begq would be 20223 and the endq would be 20233."
-        ),
+        "name": "get_census_data",
+        "description": "Fetch census data based on a data point, year, and state.",
         "parameters": {
             "type": "object",
             "properties": {
-                "ptypes": {
+                "data_point": {
                     "type": "string",
-                    "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
-                },
-                "cbsas": {
-                    "type": "string",
-                    "description": "Comma-separated list of Census CBSA codes (e.g., '19100,12060').",
-                },
-                "begq": {
-                    "type": "string",
-                    "description": "Beginning quarter in the format YYYYQ (e.g., 20231).",
-                },
-                "endq": {
-                    "type": "string",
-                    "description": "Ending quarter in the format YYYYQ (e.g., 20234).",
-                },
-            },
-            "required": ["ptypes", "begq", "endq"],
-        },
-    },
-    {
-        "name": "census_pop",
-        "description": "Generates an API call for the Census ACS Population using CBSA codes.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "cbsa": {
-                    "type": "string",
-                    "description": "Census CBSA code",
+                    "description": "The census data point to retrieve, e.g., 'median household income' or 'population'."
                 },
                 "year": {
                     "type": "string",
-                    "description": "The year of the Census ACS survey.",
+                    "description": "The year of the census data, e.g., '2019'."
                 },
+                "state": {
+                    "type": "string",
+                    "description": "The U.S. state for which the census data is requested, e.g., 'California'."
+                }
             },
-            "required": ["cbsa", "year"],
-        },
-    },
+            "required": ["data_point", "year", "state"]
+        }
+    }
 ]
 
-# --- Chat Runner Class ---
-class ChatRunner:
-    """
-    A simple runner to maintain conversation context with the OpenAI ChatCompletion API.
-    """
-    def __init__(self):
-        self.conversation_history = [system_message]
+# Build the Streamlit UI.
+st.title("Census Data Query with LLM-Powered Geographic Codes")
+st.write("Ask a plain-language question about census data, and I'll fetch the results—thanks to our trusty LLM for translating state names into FIPS codes!")
 
-    def run(self, query: str):
-        self.conversation_history.append({"role": "user", "content": query})
-        response = ChatCompletion.create(
-            model="gpt-4-0613",
-            messages=self.conversation_history,
+query = st.text_input("Enter your query about census data:")
+
+if st.button("Submit Query"):
+    if query:
+        st.write("Analyzing your query and summoning the mighty LLM... ⏳")
+        messages = [{"role": "user", "content": query}]
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-0613",  # Use a model that supports function calling.
+            messages=messages,
             functions=functions,
-            function_call="auto",
-            temperature=0.7,
+            function_call="auto"
         )
-        self.conversation_history.append(response["choices"][0]["message"])
-        return response
-
-# --- Streamlit Front-End ---
-def main():
-    st.title("Time Weighted Returns Assistant")
-    st.markdown(
-        "Welcome to the witty assistant for calculating Time Weighted Returns and accessing Census data. "
-        "Simply type your query below and let the magic unfold!"
-    )
-
-    if "chat_runner" not in st.session_state:
-        st.session_state.chat_runner = ChatRunner()
-
-    # Use a form with clear_on_submit=True to automatically clear the text input after submission.
-    with st.form(key="query_form", clear_on_submit=True):
-        query = st.text_input("Enter your query here", key="query_input", value="")
-        submit_button = st.form_submit_button("Send Query")
-        if submit_button:
-            if query.strip():
-                with st.spinner("Thinking..."):
-                    st.session_state.chat_runner.run(query)
+        message = response["choices"][0]["message"]
+        if message.get("function_call"):
+            function_name = message["function_call"]["name"]
+            try:
+                arguments = json.loads(message["function_call"]["arguments"])
+            except json.JSONDecodeError:
+                st.error("Error decoding function arguments.")
+                arguments = {}
+            st.write(f"OpenAI decided to call: **{function_name}** with arguments:")
+            st.json(arguments)
+            if function_name == "get_census_data":
+                result = get_census_data(
+                    data_point=arguments.get("data_point"),
+                    year=arguments.get("year"),
+                    state=arguments.get("state")
+                )
+                st.write("### Census Data Result:")
+                st.json(result)
             else:
-                st.warning("Please enter a query!")
-
-    if st.button("Reset Conversation"):
-        st.session_state.chat_runner = ChatRunner()
-        st.experimental_rerun()
-
-    st.write("### Conversation History")
-    for message in st.session_state.chat_runner.conversation_history:
-        role = message.get("role", "unknown")
-        content = message.get("content", "")
-        if role == "user":
-            st.markdown(f"**User:** {content}")
-        elif role == "assistant":
-            st.markdown(f"**Assistant:** {content}")
-        elif role == "system":
-            st.markdown(f"**System:** {content}")
+                st.write("Unknown function called.")
         else:
-            st.markdown(f"**{role.capitalize()}:** {content}")
-
-if __name__ == "__main__":
-    main()
+            st.write("Response from model:")
+            st.write(message.get("content", "No content returned."))
+    else:
+        st.warning("Please enter a query to proceed!")
