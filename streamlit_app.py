@@ -5,6 +5,7 @@ import requests
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
+from langchain_openai import ChatOpenAI
 
 import streamlit as st
 import base64
@@ -79,7 +80,6 @@ def census_pop(cbsa: str, year: str) -> int:
 
 # Import the latest LangChain components
 from langchain.schema import LLMResult
-from langchain.llms import ChatOpenAI
 from langchain.agents import (
     Agent,
     FunctionEnvelope,
