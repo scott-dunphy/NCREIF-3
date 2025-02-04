@@ -12,7 +12,7 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 # Utility: Retry-enabled chat completion request (cookbook style)
 # ------------------------------------------------------------
 @retry(wait=wait_random_exponential(multiplier=1, max=40), stop=stop_after_attempt(3))
-def chat_completion_request(messages, functions=None, function_call="auto", model="gpt-3.5-turbo-0613"):
+def chat_completion_request(messages, functions=None, function_call="auto", model="gpt-4o"):
     """
     Call the Chat Completion API with retry logic.
     'functions' holds our function specifications and 'function_call' can be "auto", "none", or forced.
