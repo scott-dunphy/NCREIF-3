@@ -63,49 +63,99 @@ def census_pop(cbsa, year):
 
 # Assistant creation (no changes needed here)
 assistant = client.beta.assistants.create(
-    # ... (instructions, model, tools)
+    instructions="""
+        TAKE A DEEP BREATH AND GO STEP-BY-STEP!
+        [Background]
+        You are an expert at Statistics and calculating Time Weighted Returns using the Geometric
+        Mean calculation.
+
+        Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns
+        for each property type and CBSA. 
+
+        You also have access to Census population data for CBSAs.
+    """,
+    model="gpt-4-turbo-preview",
+    tools=[
+        {"type": "code_interpreter"},
+        {"type": "function",
+         "function": {
+             "name": "ncreif_api",
+             "description": """Generates an API call for the NCREIF API.O = Office, R = Retail, I = Industrial, A = Apartments. Quarters are formatted as YYYYQ.
+                                When asked for 1-year returns as of a certain date, you will use the trailing four quarters from the as of date. For example, the
+                                quarters used in the calculation for the 1-year return as of 3Q 2023 would be 4Q 2022, 1Q 2023, 2Q 2023, and 3Q 2023. The begq would be
+                                20223 and the endq would be 20233. 1-year return as of 2Q 2023 would have begq = 20222 and endq = 20232.
+                                For the 1-year return as of 4Q 2023, the begq would be 20224 and the endq would be 20234.
+                                1-year return as of 1Q 2023 would have begq = 20221 and endq = 20231. Be sure to always include the correct number of quarters.
+                                2.5-years = 10 quarters.
+                                The same logic applies for the 3-year and 5-year returns, etc.""",
+             "parameters": {
+                 "type": "object",
+                 "properties": {
+                     "ptypes": {
+                         "type": "string",
+                         "description": "Comma-separated property types selected (e.g., 'O,R,I,A').",
+                     },
+                     "cbsas": {
+                         "type": "string",
+                         "description": "Comma-separated list of Census CBSA codes for NCREIF returns or property type (e.g. '19100, 12060').",
+                     },
+                     "begq": {
+                         "type": "string",
+                         "description": "Beginning quarter for the data requested in the format YYYYQ. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
+                     },
+                     "endq": {
+                         "type": "string",
+                         "description": "Ending quarter for the data requested in the format YYYYQ. This would also be the 'as of' quarter. MUST be formatted as YYYYQ (e.g. 3Q 2023 = 20233",
+                     },
+                 },
+             }
+         }
+        },
+        {"type": "function",
+         "function": {
+             "name": "census_pop",
+             "description": "Generates an API call for the Census ACS Population using CBSA codes. ",
+             "parameters": {
+                 "type": "object",
+                 "properties": {
+                     "cbsa": {
+                         "type": "string",
+                         "description": "Census CBSA code",
+                     },
+                     "year": {
+                         "type": "string",
+                         "description": "The year of the Census ACS survey.",
+                     },
+                 },
+             }
+         }
+        }
+    ]
 )
 
-# ThreadRunner class (no changes needed here)
+
 class ThreadRunner:
-    # ... (code remains the same)
+    def __init__(self, client, available_functions=None):
+        self.client = client
+        self.available_functions = available_functions or {'ncreif_api': ncreif_api, 'census_pop': census_pop}
+        self.thread = None
+        self.messages = []
 
-# Initialize ThreadRunner
-runner = ThreadRunner(client)
+    def create_thread(self):
+        self.thread = self.client.beta.threads.create()
 
-# Streamlit app
-st.title('AI NCREIF QUERY TOOL w/ Analytics')
+    def run_thread(self, query):
+        if not self.thread:
+            self.create_thread()
 
-# Input section
-col1, col2 = st.columns(2) # Create two columns for layout
-with col1:
-    ptypes_input = st.text_input("Property Types (e.g., O,R,I,A):", value="O,R,I,A")
-with col2:
-    cbsas_input = st.text_input("CBSA Codes (e.g., 19100,12060):")
+        self.client.beta.threads.messages.create(
+            thread_id=self.thread.id,
+            role="user",
+            content=query
+        )
 
-col3, col4 = st.columns(2)
-with col3:
-  begq_input = st.text_input("Begin Quarter (YYYYQ):", value="20231")
-with col4:
-  endq_input = st.text_input("End Quarter (YYYYQ):", value="20234")
-
-
-query = st.text_area("Enter your query:", height=150) # Larger text area
-go_button = st.button("Run Query")  # Explicit button to trigger query
-
-# Query execution and results display
-if go_button:
-    if not query:
-        st.warning("Please enter a query.")
-    else:
-        try:
-            with st.spinner("Running query..."): # Display a spinner while running
-                messages = runner.run_thread(query)
-            if messages:
-                result = messages.data[0].content[0].text.value # Access the text value correctly
-                st.write("## Results") # More prominent heading for results
-                st.write(result) # Display the result
-            else:
-                st.error("An error occurred during query execution. Check the logs above.") # More specific error message
-        except Exception as e:
-            st.exception(f"A general error occurred: {e}") # Display the full exception details for debugging
+        run = self.client.beta.threads.runs.create(
+            thread_id=self.thread.id,
+            assistant_id=assistant.id,
+            instructions="""
+            You are an expert data analyst tasked with calculating geometric means for income returns, capital returns, and total returns grouped by property type from a given dataset. The
