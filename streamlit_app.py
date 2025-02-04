@@ -6,19 +6,20 @@ from urllib.parse import urlparse, parse_qs
 import pandas as pd
 import requests
 import streamlit as st
-import openai  # The new and improved OpenAI library
+import openai  # The shiny new OpenAI library
 
-# Set up our API key (because even modern wizards need magic words)
+# --- API & Credentials Setup ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 NCREIF_USER = st.secrets["NCREIF_USER"]
 NCREIF_PASSWORD = st.secrets["NCREIF_PASSWORD"]
 
-
+# --- NCREIF API Function ---
 def ncreif_api(ptypes: str, cbsas: str = None, begq: str = '20231', endq: str = '20234'):
     """
-    Fetches and aggregates data from the NCREIF API. Quarters must be formatted as YYYYQ.
-    (Our code is so fresh, even the API URLs get a facelift.)
+    Fetch and aggregate data from the NCREIF API.
+    
+    Quarters must be formatted as YYYYQ.
     """
     aggregated_data = []
     ptypes_list = ptypes.split(",")
@@ -39,7 +40,7 @@ def ncreif_api(ptypes: str, cbsas: str = None, begq: str = '20231', endq: str = 
                 f"&GroupBy={group_by}&Format=json&UserName={NCREIF_USER}&password={NCREIF_PASSWORD}"
             )
 
-            st.write(f"Fetching data from: {url}")  # Because transparency is the best policy.
+            st.write(f"Fetching data from: {url}")  # Because transparency is magical.
             try:
                 response = requests.get(url, timeout=10)
                 response.raise_for_status()
@@ -57,11 +58,10 @@ def ncreif_api(ptypes: str, cbsas: str = None, begq: str = '20231', endq: str = 
 
     return aggregated_data
 
-
+# --- Census API Function ---
 def census_pop(cbsa: str, year: str):
     """
-    Fetches Census ACS Population data for the given CBSA and year.
-    (Because who doesn't love some census trivia with their API calls?)
+    Fetch Census ACS Population data for a given CBSA and year.
     """
     url = (
         f"https://api.census.gov/data/{year}/acs/acs5?"
@@ -83,22 +83,20 @@ def census_pop(cbsa: str, year: str):
         )
         return None
 
-
-# --- ChatCompletion API Setup ---
-# Our system prompt now sets the scene like a director before the big show.
+# --- OpenAI ChatCompletion Setup ---
 system_message = {
     "role": "system",
     "content": (
         "TAKE A DEEP BREATH AND GO STEP-BY-STEP!\n"
         "[Background]\n"
         "You are an expert at Statistics and calculating Time Weighted Returns using the Geometric Mean calculation.\n\n"
-        "Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns\n"
-        "for each property type and CBSA. \n\n"
+        "Given data for multiple property types and/or CBSAs, calculate and compare the Time Weighted Returns "
+        "for each property type and CBSA.\n\n"
         "You also have access to Census population data for CBSAs."
     )
 }
 
-# Define our function call specifications with descriptions so the assistant knows what spell to cast
+# Define our function call specifications
 functions = [
     {
         "name": "ncreif_api",
@@ -153,35 +151,16 @@ functions = [
     },
 ]
 
-
-def run_chat(query: str, conversation_history=None):
-    """
-    Sends a chat request to OpenAI's ChatCompletion API while preserving conversation history.
-    (Think of it as the conversational version of your favorite multi-step recipe.)
-    """
-    if conversation_history is None:
-        conversation_history = [system_message]
-    conversation_history.append({"role": "user", "content": query})
-    response = openai.ChatCompletion.create(
-        model="gpt-4-0613",  # Use your favorite model — the latest and greatest!
-        messages=conversation_history,
-        functions=functions,
-        function_call="auto",
-        temperature=0.7,
-    )
-    conversation_history.append(response["choices"][0]["message"])
-    return response, conversation_history
-
-
+# --- Chat Runner Class ---
 class ChatRunner:
     """
-    A simple runner class to maintain conversation context with the OpenAI ChatCompletion API.
-    (Because even brilliant minds need a good running partner.)
+    A simple runner to maintain conversation context with the OpenAI ChatCompletion API.
     """
     def __init__(self):
         self.conversation_history = [system_message]
 
     def run(self, query: str):
+        # Append the user's query to the conversation
         self.conversation_history.append({"role": "user", "content": query})
         response = openai.ChatCompletion.create(
             model="gpt-4-0613",
@@ -190,15 +169,53 @@ class ChatRunner:
             function_call="auto",
             temperature=0.7,
         )
+        # Append the assistant's response to the conversation
         self.conversation_history.append(response["choices"][0]["message"])
         return response
 
+# --- Streamlit Front-End ---
+def main():
+    st.title("Time Weighted Returns Assistant")
+    st.markdown(
+        "Welcome to the witty assistant for calculating Time Weighted Returns and accessing Census data. "
+        "Simply type your query below and let the magic unfold!"
+    )
 
-# --- Example usage ---
-# Uncomment the following lines to try it out in your Streamlit app (or any other environment)
-# chat_runner = ChatRunner()
-# response = chat_runner.run(
-#     "Calculate the geometric mean returns for property type A in CBSA 12345 for the last year. "
-#     "Remember to use the trailing four quarters."
-# )
-# st.write(response)
+    # Initialize ChatRunner in session state
+    if "chat_runner" not in st.session_state:
+        st.session_state.chat_runner = ChatRunner()
+
+    # Create a text input for user queries
+    query = st.text_input("Enter your query here", value="", key="query_input")
+    
+    # When the user clicks 'Send Query'
+    if st.button("Send Query"):
+        if query.strip():
+            with st.spinner("Thinking..."):
+                st.session_state.chat_runner.run(query)
+            # Clear the input field after sending
+            st.session_state.query_input = ""
+        else:
+            st.warning("Please enter a query!")
+
+    # Option to reset the conversation
+    if st.button("Reset Conversation"):
+        st.session_state.chat_runner = ChatRunner()
+        st.experimental_rerun()
+
+    st.write("### Conversation History")
+    # Display the conversation history
+    for message in st.session_state.chat_runner.conversation_history:
+        role = message.get("role", "unknown")
+        content = message.get("content", "")
+        if role == "user":
+            st.markdown(f"**User:** {content}")
+        elif role == "assistant":
+            st.markdown(f"**Assistant:** {content}")
+        elif role == "system":
+            st.markdown(f"**System:** {content}")
+        else:
+            st.markdown(f"**{role.capitalize()}:** {content}")
+
+if __name__ == "__main__":
+    main()
