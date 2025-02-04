@@ -4,3 +4,4 @@ pydantic
 streamlit-pydantic
 langchain_core
 langchain_experimental
+langchain-openai
