@@ -96,7 +96,7 @@ def get_census_data(data_point: str, year: str, state: str):
         return {"error": f"Data point '{data_point}' not recognized. Try updating the mapping."}
     
     # Build the Census API URL (no API key required).
-    url = f"https://api.census.gov/data/{year}/acs/acs5"
+    url = f"https://api.census.gov/data/{year}/acs/acs1"
     params = {
         "get": variable,
         "for": f"state:{fips}"
